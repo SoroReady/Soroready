@@ -4,7 +4,7 @@
 
 ## Front construido
 
-Front publicado: https://frontend-sage-delta-21.vercel.app
+Front publicado: https://soroready.xyz
 
 El PR #1 agrega `frontend/`, una single-page app construida con Vite,
 React y TypeScript. La interfaz es deliberadamente mínima: un campo de
@@ -73,6 +73,22 @@ releases oficiales de Stellar en GitHub (`stellar/rs-soroban-sdk`,
 fijo en el código. Esto mantiene a Soroready como un observador: lee,
 compara y avisa, pero nunca toca fondos, llaves ni el contrato que
 audita.
+
+Decidimos no construir un contrato propio porque no le suma nada a lo
+que el radar necesita demostrar. Soroready no audita lógica de
+contratos: audita una dependencia declarada en un manifest. Un contrato
+hecho desde cero solo para tener algo desplegado en testnet sería código
+nuestro que mantener, probar y defender el día de la demo, sin dar
+ninguna señal distinta a la que ya da un ejemplo real del ecosistema.
+Usar un ejemplo oficial de `stellar/soroban-examples` cumple la misma
+función — un contrato real, compilado con una versión vieja de
+`soroban-sdk`, detectable en vivo — sin inventar superficie de código
+propio ni salirnos del alcance del MVP que ya fijamos en el Product
+Blueprint de la Semana 2, donde el contrato demo queda explícitamente
+como pieza de detección, nunca como producto en sí mismo. Es la misma
+lógica detrás de que Soroready nunca toque fondos ni llaves: tener
+nuestro propio contrato no haría esa promesa más creíble, solo más
+código que cuidar.
 
 ## Participación del equipo
 
