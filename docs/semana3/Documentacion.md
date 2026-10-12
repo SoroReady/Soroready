@@ -54,6 +54,9 @@ Action que de verdad lo publique en GitHub.
 
 ### Capturas
 
+![Inicio](capturas/1-inicio.png): la página de inicio con el campo
+owner/repo y el botón Revisar.
+
 ![Diagnóstico](capturas/2-diagnostico.png): el resultado con
 `stellar/soroban-examples`, 10 contratos comparados contra la versión
 vigente y la vista previa del issue.
