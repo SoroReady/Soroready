@@ -82,6 +82,17 @@ pestañas de Vista y Markdown y el botón para abrirlo en GitHub.
 pantalla angosta, con filtros y semáforo apilados — responsive desde
 360px.
 
+![Hero en escritorio](capturas/5-hero-escritorio.png): el hero con el
+radar, la franja del protocolo vigente en mainnet y testnet (Horizon,
+en vivo) y los repos de ejemplo.
+
+![Cómo funciona](capturas/6-como-funciona.png): los 6 pasos del flujo,
+marcando cuáles hace esta página, cuáles la Action y cuál el tablero.
+
+![Tablero y Action](capturas/7-tablero-y-action.png): el tablero del
+ecosistema con el dato de Raven del 3-oct-2026 (marcado como no en
+vivo) y la sección de la Action en construcción.
+
 ## Decisión técnica
 
 **Opción B.** Soroready no tiene lógica en la cadena: el radar vive

@@ -58,7 +58,7 @@ export function construirIssue(resultado: ResultadoEscaneo): IssueGenerado {
   let markdown = partes.join('\n')
   let recortado = false
   if (markdown.length > LIMITE_CARACTERES) {
-    markdown = `${markdown.slice(0, LIMITE_CARACTERES)}\n\n_(recortado por longitud — ver el escaneo completo en la página)_`
+    markdown = `${markdown.slice(0, LIMITE_CARACTERES)}\n\n_(recortado por longitud. Ver el escaneo completo en la página)_`
     recortado = true
   }
 
