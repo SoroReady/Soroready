@@ -4,6 +4,8 @@
 
 ## Front construido
 
+Front publicado: https://frontend-sage-delta-21.vercel.app
+
 El PR #1 agrega `frontend/`, una single-page app construida con Vite,
 React y TypeScript. La interfaz es deliberadamente mínima: un campo de
 texto donde el mantenedor escribe su repo como `owner/repo` (por ejemplo
