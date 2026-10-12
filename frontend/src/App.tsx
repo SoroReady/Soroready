@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import './App.css'
 
-type Resultado =
-  | { estado: 'ok'; versionRepo: string; versionActual: string; releaseUrl: string }
-  | { estado: 'desfasado'; versionRepo: string; versionActual: string; releaseUrl: string }
-  | { estado: 'error'; mensaje: string }
+type ResultadoArchivo =
+  | { estado: 'ok'; ruta: string; versionRepo: string; versionActual: string; releaseUrl: string }
+  | { estado: 'desfasado'; ruta: string; versionRepo: string; versionActual: string; releaseUrl: string }
+  | { estado: 'sin-dependencia'; ruta: string }
 
 function limpiarVersion(v: string): string {
   return v.trim().replace(/^v/i, '')
@@ -30,10 +30,10 @@ function extraerVersionSorobanSdk(cargoToml: string): string | null {
   return match[1] ?? match[2] ?? null
 }
 
-function construirTextoIssue(versionRepo: string, versionActual: string, releaseUrl: string): string {
+function construirTextoIssue(ruta: string, versionRepo: string, versionActual: string, releaseUrl: string): string {
   return `Título: Actualiza soroban-sdk antes del próximo upgrade de protocolo
 
-Este repo usa soroban-sdk ${versionRepo}. La versión vigente es ${versionActual}.
+${ruta} usa soroban-sdk ${versionRepo}. La versión vigente es ${versionActual}.
 
 Revisa el changelog antes de actualizar: ${releaseUrl}
 
@@ -43,55 +43,91 @@ Este issue es informativo. Soroready no modifica tu código ni tus fondos.`
 function App() {
   const [ownerRepo, setOwnerRepo] = useState('')
   const [cargando, setCargando] = useState(false)
-  const [resultado, setResultado] = useState<Resultado | null>(null)
+  const [errorGlobal, setErrorGlobal] = useState<string | null>(null)
+  const [resultados, setResultados] = useState<ResultadoArchivo[]>([])
   const [copiado, setCopiado] = useState(false)
 
   async function revisar() {
     setCopiado(false)
+    setErrorGlobal(null)
+    setResultados([])
+
     const partes = ownerRepo.trim().split('/')
     if (partes.length !== 2 || !partes[0] || !partes[1]) {
-      setResultado({ estado: 'error', mensaje: 'Escribe el repo como owner/repo, por ejemplo stellar/rs-soroban-sdk.' })
+      setErrorGlobal('Escribe el repo como owner/repo, por ejemplo stellar/rs-soroban-sdk.')
       return
     }
     const [owner, repo] = partes
 
     setCargando(true)
-    setResultado(null)
     try {
-      const [cargoResp, releaseResp] = await Promise.all([
-        fetch(`https://api.github.com/repos/${owner}/${repo}/contents/Cargo.toml`),
+      const [repoResp, releaseResp] = await Promise.all([
+        fetch(`https://api.github.com/repos/${owner}/${repo}`),
         fetch('https://api.github.com/repos/stellar/rs-soroban-sdk/releases/latest'),
       ])
 
-      if (!releaseResp.ok) {
-        setResultado({ estado: 'error', mensaje: 'No se pudo consultar la última versión de soroban-sdk en GitHub.' })
+      if (!repoResp.ok) {
+        setErrorGlobal('No se encontró ese repo en GitHub (o es privado).')
         return
       }
+      if (!releaseResp.ok) {
+        setErrorGlobal('No se pudo consultar la última versión de soroban-sdk en GitHub.')
+        return
+      }
+
+      const repoData = await repoResp.json()
       const releaseData = await releaseResp.json()
       const versionActual = limpiarVersion(releaseData.tag_name ?? '')
-      const releaseUrl = releaseData.html_url ?? `https://github.com/stellar/rs-soroban-sdk/releases/tag/${releaseData.tag_name}`
+      const releaseUrl =
+        releaseData.html_url ?? `https://github.com/stellar/rs-soroban-sdk/releases/tag/${releaseData.tag_name}`
+      const rama = repoData.default_branch
 
-      if (!cargoResp.ok) {
-        setResultado({ estado: 'error', mensaje: 'No se encontró Cargo.toml en ese repo (o el repo no existe o es privado).' })
-        return
-      }
-      const cargoData = await cargoResp.json()
-      const cargoToml = atob(cargoData.content ?? '')
-      const versionRepo = extraerVersionSorobanSdk(cargoToml)
-
-      if (!versionRepo) {
-        setResultado({ estado: 'error', mensaje: 'Cargo.toml no tiene una dependencia de soroban-sdk reconocible.' })
-        return
-      }
-
-      const cmp = compararVersiones(versionRepo, versionActual)
-      setResultado(
-        cmp >= 0
-          ? { estado: 'ok', versionRepo, versionActual, releaseUrl }
-          : { estado: 'desfasado', versionRepo, versionActual, releaseUrl },
+      const treeResp = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/git/trees/${rama}?recursive=1`,
       )
+      if (!treeResp.ok) {
+        setErrorGlobal('No se pudo leer la lista de archivos del repo.')
+        return
+      }
+      const treeData = await treeResp.json()
+      const rutas: string[] = (treeData.tree ?? [])
+        .filter(
+          (item: { type: string; path: string }) =>
+            item.type === 'blob' && (item.path === 'Cargo.toml' || item.path.endsWith('/Cargo.toml')),
+        )
+        .slice(0, 10)
+        .map((item: { path: string }) => item.path)
+
+      if (rutas.length === 0) {
+        setErrorGlobal('No se encontró ningún Cargo.toml en este repo.')
+        return
+      }
+
+      const contenidos = await Promise.all(
+        rutas.map((ruta) =>
+          fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${ruta}`).then((r) =>
+            r.ok ? r.json() : null,
+          ),
+        ),
+      )
+
+      const nuevos: ResultadoArchivo[] = rutas.map((ruta, i) => {
+        const data = contenidos[i]
+        const cargoToml = data ? atob(data.content ?? '') : ''
+        const versionRepo = data ? extraerVersionSorobanSdk(cargoToml) : null
+
+        if (!versionRepo) {
+          return { estado: 'sin-dependencia', ruta }
+        }
+        const cmp = compararVersiones(versionRepo, versionActual)
+        return cmp >= 0
+          ? { estado: 'ok', ruta, versionRepo, versionActual, releaseUrl }
+          : { estado: 'desfasado', ruta, versionRepo, versionActual, releaseUrl }
+      })
+
+      setResultados(nuevos)
     } catch {
-      setResultado({ estado: 'error', mensaje: 'Falló la consulta a la API de GitHub. Intenta de nuevo.' })
+      setErrorGlobal('Falló la consulta a la API de GitHub. Intenta de nuevo.')
     } finally {
       setCargando(false)
     }
@@ -107,10 +143,15 @@ function App() {
     }
   }
 
-  const textoIssue =
-    resultado && resultado.estado !== 'error'
-      ? construirTextoIssue(resultado.versionRepo, resultado.versionActual, resultado.releaseUrl)
-      : null
+  const primerDesfasado = resultados.find((r) => r.estado === 'desfasado')
+  const textoIssue = primerDesfasado
+    ? construirTextoIssue(
+        primerDesfasado.ruta,
+        primerDesfasado.versionRepo,
+        primerDesfasado.versionActual,
+        primerDesfasado.releaseUrl,
+      )
+    : null
 
   return (
     <main className="page">
@@ -138,22 +179,30 @@ function App() {
         </button>
       </form>
 
-      {resultado && resultado.estado === 'error' && (
-        <p className="mensaje error">{resultado.mensaje}</p>
-      )}
+      {errorGlobal && <p className="mensaje error">{errorGlobal}</p>}
 
-      {resultado && resultado.estado !== 'error' && (
-        <div className={`mensaje ${resultado.estado === 'ok' ? 'ok' : 'desfasado'}`}>
-          <p>
-            {resultado.estado === 'ok' ? 'Al día' : 'Desfasado'}: tu repo usa{' '}
-            <strong>{resultado.versionRepo}</strong>, la versión vigente es{' '}
-            <strong>{resultado.versionActual}</strong>.
-          </p>
-          <a href={resultado.releaseUrl} target="_blank" rel="noreferrer">
-            Ver release
-          </a>
+      {resultados.map((r) => (
+        <div
+          key={r.ruta}
+          className={`mensaje ${r.estado === 'ok' ? 'ok' : r.estado === 'desfasado' ? 'desfasado' : 'error'}`}
+        >
+          <p className="ruta-archivo">{r.ruta}</p>
+          {r.estado === 'sin-dependencia' ? (
+            <p>Este Cargo.toml no declara soroban-sdk.</p>
+          ) : (
+            <>
+              <p>
+                {r.estado === 'ok' ? 'Al día' : 'Desfasado'}: usa{' '}
+                <strong>{r.versionRepo}</strong>, la versión vigente es{' '}
+                <strong>{r.versionActual}</strong>.
+              </p>
+              <a href={r.releaseUrl} target="_blank" rel="noreferrer">
+                Ver release
+              </a>
+            </>
+          )}
         </div>
-      )}
+      ))}
 
       {textoIssue && (
         <section className="issue-preview">
