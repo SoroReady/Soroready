@@ -52,6 +52,12 @@ frontend sirve entonces como prototipo de la lógica de diagnóstico y de
 la redacción del issue, separado de la pieza que todavía falta: la
 Action que de verdad lo publique en GitHub.
 
+### Capturas
+
+![Diagnóstico](capturas/2-diagnostico.png): el resultado con
+`stellar/soroban-examples`, 10 contratos comparados contra la versión
+vigente y la vista previa del issue.
+
 ## Decisión técnica
 
 **Opción B.** Soroready no tiene lógica en la cadena: el radar vive
