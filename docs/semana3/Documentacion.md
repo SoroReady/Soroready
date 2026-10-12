@@ -82,6 +82,10 @@ audita.
   React + TypeScript que compara versiones de `soroban-sdk` y muestra la
   vista previa del issue.
 
+Mentoría: (Eras256) acompañó al equipo en las semanas 1 y 2, configuró
+el repositorio inicial y nos ayudó a armar los primeros documentos. El
+trabajo de la semana 3 es del equipo.
+
 ## Bloqueos y siguiente paso
 
 La Action todavía no existe. Siguiente paso: contrato demo en testnet y
