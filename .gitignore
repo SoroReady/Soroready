@@ -1,0 +1,16 @@
+# Notas y procesos internos — nunca al repo público
+playbooks/
+
+# Configuración local de Claude Code: skills, comandos (session-close
+# incluido) y settings — nunca al repo público
+.claude/
+
+# Secretos
+.env
+.env.*
+*.key
+
+# Build / dependencias
+node_modules/
+dist/
+.vercel/
