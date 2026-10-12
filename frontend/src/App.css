@@ -3,11 +3,11 @@
   margin: 0 auto;
   padding: 3rem 1.5rem;
   font-family: system-ui, sans-serif;
-  color: #1a1a1a;
+  color: var(--text-h);
 }
 
 .subtitulo {
-  color: #444;
+  color: var(--text);
   line-height: 1.5;
 }
 
@@ -44,6 +44,14 @@
   padding: 0.8rem 1rem;
   border-radius: 6px;
   margin-bottom: 1rem;
+  text-align: left;
+}
+
+.ruta-archivo {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+  opacity: 0.8;
 }
 
 .mensaje.error {
